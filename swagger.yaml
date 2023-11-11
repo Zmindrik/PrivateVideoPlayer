@@ -1,0 +1,33 @@
+swagger: '2.0'
+info:
+  version: '0.0.1'
+  title: Video Upload API
+  description: API for uploading videos and associating tags
+host: 'localhost:3000'
+basePath: '/'
+schemes:
+  - http
+
+paths:
+  /upload-video:
+    post:
+      summary: Upload a video
+      description: Uploads a video file and associates tags.
+      consumes:
+        - multipart/form-data
+      parameters:
+        - in: formData
+          name: video
+          type: file
+          description: The file to upload.
+        - in: formData
+          name: tags
+          type: string
+          description: JSON string of tags.
+      responses:
+        200:
+          description: Video uploaded successfully
+        400:
+          description: No video file uploaded
+        500:
+          description: Error uploading video
