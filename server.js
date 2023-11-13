@@ -1,9 +1,10 @@
 // Import express into your file
 const express = require('express');
 const multer = require('multer');
+const cors = require('cors');
 const upload = multer({ dest: 'uploads/' });
 const { poolPromise } = require('./db');
-const { insertVideoIntoDatabase } = require('./databaseOps');
+const { fetchVideoDataById, insertVideoIntoDatabase, fetchVideosFromDatabase } = require('./databaseOps');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 require('dotenv').config({ path: './database.env' });
@@ -15,21 +16,40 @@ app.use(express.json());
 const swaggerDocument = YAML.load('./swagger.yaml');
 app.use('/api', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
+app.use(cors());  // Enable CORS for all routes
+
 // Define a port number
 const port = 3000;
 
-app.get('/', async (req, res) => {
+app.get('/videos', async (req, res) => {
     try {
-      const pool = await poolPromise;
-      const result = await pool.request()
-        .query('SELECT DB_NAME() AS dbName'); // Query to get the database name
-      res.send(`Connected to database: ${result.recordset[0].dbName}`);
+      const { search } = req.query;
+      const videos = await fetchVideosFromDatabase(search);
+      res.json(videos);
     } catch (err) {
-      res.status(500);
-      res.send(err.message);
+      res.status(500).send('Error fetching videos');
     }
   });
   
+  app.get('/video/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      // Fetch the video data from the database based on the ID
+      const videoData = await fetchVideoDataById(id);
+      if (videoData) {
+        res.writeHead(200, {
+          'Content-Type': 'video/mp4', // Adjust based on your video format
+          'Content-Length': videoData.length
+        });
+        res.end(videoData);
+      } else {
+        res.status(404).send('Video not found');
+      }
+    } catch (err) {
+      res.status(500).send(err.message);
+    }
+  });
+
   app.post('/upload-video', upload.single('video'), async (req, res) => {
     try {
       const videoFile = req.file;

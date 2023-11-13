@@ -31,3 +31,58 @@ paths:
           description: No video file uploaded
         500:
           description: Error uploading video
+
+  /videos:
+    get:
+      summary: Fetch videos
+      description: Retrieves a list of videos, optionally filtered by a search term in titles or tags.
+      parameters:
+        - in: query
+          name: search
+          type: string
+          required: false
+          description: Optional search term to filter videos by title or tags.
+      responses:
+        200:
+          description: A list of videos
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Video'
+        500:
+          description: Error fetching videos
+
+  /video/{id}:
+    get:
+      summary: Fetch a specific video
+      description: Retrieves the content of a specific video by its ID.
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: The ID of the video to fetch.
+      responses:
+        200:
+          description: Video content
+          schema:
+            type: file
+        404:
+          description: Video not found
+        500:
+          description: Error fetching the video
+
+definitions:
+  Video:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+        description: Unique identifier of the video
+      title:
+        type: string
+        description: Title of the video
+      tags:
+        type: string
+        description: Comma-separated list of tags associated with the video
