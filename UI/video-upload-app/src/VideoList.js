@@ -53,6 +53,7 @@ function VideoList() {
       <div>
         {videos.map(video => (
           <div key={video.id}>
+            <img src={`data:image/png;base64,${video.thumbnailData}`} alt={video.title} />
             <h3 onClick={() => handleTitleClick(video.id)} style={{ cursor: 'pointer' }}>{video.title}</h3>
             <p>Tags: {video.tags}</p> {/* Adjust how tags are displayed based on your data structure */}
           </div>
@@ -60,7 +61,7 @@ function VideoList() {
       </div>
       {currentVideoUrl && (
         <div>
-          <video controls src={currentVideoUrl} />
+          <video controls src={currentVideoUrl} onContextMenu={(e) => e.preventDefault()} />
         </div>
       )}
     </div>

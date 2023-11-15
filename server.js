@@ -7,6 +7,13 @@ const { poolPromise } = require('./db');
 const { fetchVideoDataById, insertVideoIntoDatabase, fetchVideosFromDatabase } = require('./databaseOps');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegStatic = require('ffmpeg-static');
+const ffprobeStatic = require('ffprobe-static');
+const fs = require('fs');
+const path = require('path');
+ffmpeg.setFfmpegPath(ffmpegStatic);
+ffmpeg.setFfprobePath(ffprobeStatic.path);
 require('dotenv').config({ path: './database.env' });
 
 // Create an instance of express
@@ -55,15 +62,17 @@ app.get('/videos', async (req, res) => {
       const videoFile = req.file;
       const tagsString = req.body.tags; 
       const tags = tagsString ? tagsString.split(',') : [];
-
+  
       if (!videoFile) {
         return res.status(400).send('No video file uploaded.');
       }
   
       const videoTitle = extractTitleFromVideo(videoFile);
+      const videoName = videoFile.originalname.split('.')[0];
+      const thumbnailPath = await generateThumbnail(videoFile.path, videoName);
   
-      // Insert into your database (you need to implement this function)
-      await insertVideoIntoDatabase(videoTitle, videoFile, tags);
+      // Now pass both videoFile and thumbnailPath to the insertVideoIntoDatabase function
+      await insertVideoIntoDatabase(videoTitle, videoFile, thumbnailPath, tags);
   
       res.status(200).send('Video uploaded successfully.');
     } catch (err) {
@@ -77,5 +86,28 @@ app.get('/videos', async (req, res) => {
 
   function extractTitleFromVideo(videoFile) {
     return videoFile.originalname.split('.')[0];
+  }
+
+  function generateThumbnail(videoPath, videoName) {
+    const thumbnailFolder = 'thumbnails';
+    const thumbnailFilename = `${videoName}-thumbnail.png`;
+    const thumbnailPath = path.join(thumbnailFolder, thumbnailFilename);
+  
+    // Ensure the directory exists
+    if (!fs.existsSync(thumbnailFolder)) {
+      fs.mkdirSync(thumbnailFolder, { recursive: true });
+    }
+  
+    return new Promise((resolve, reject) => {
+      ffmpeg(videoPath)
+        .on('end', () => resolve(thumbnailPath))
+        .on('error', (err) => reject(err))
+        .screenshots({
+          count: 1,
+          folder: thumbnailFolder,
+          filename: thumbnailFilename,
+          size: '320x240'
+        });
+    });
   }
   

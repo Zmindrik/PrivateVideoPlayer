@@ -22,7 +22,7 @@ async function fetchVideoDataById(id) {
     }
   }
 
-async function insertVideoIntoDatabase(title, videoFile, tags) {
+  async function insertVideoIntoDatabase(title, videoFile, thumbnailFilePath, tags) {
   const pool = await poolPromise;
   const transaction = new sql.Transaction(pool);
 
@@ -30,12 +30,14 @@ async function insertVideoIntoDatabase(title, videoFile, tags) {
     await transaction.begin();
 
     const videoData = fs.readFileSync(videoFile.path);
+    const thumbnailData = fs.readFileSync(thumbnailFilePath); // Read the thumbnail file data
 
-    // Insert the video
-    let videoInsertQuery = `INSERT INTO videos (title, video_data) VALUES (@title, @videoData); SELECT SCOPE_IDENTITY() AS id;`;
+    // Insert the video along with the thumbnail data
+    let videoInsertQuery = `INSERT INTO videos (title, video_data, thumbnail_data) VALUES (@title, @videoData, @thumbnailData); SELECT SCOPE_IDENTITY() AS id;`;
     let videoResult = await transaction.request()
       .input('title', sql.VarChar, title)
-      .input('videoData', sql.VarBinary(sql.MAX), videoData) // Insert binary data
+      .input('videoData', sql.VarBinary(sql.MAX), videoData) // Insert video binary data
+      .input('thumbnailData', sql.VarBinary(sql.MAX), thumbnailData) // Insert thumbnail binary data
       .query(videoInsertQuery);
 
     let videoId = videoResult.recordset[0].id;
@@ -90,34 +92,40 @@ async function fetchVideosFromDatabase(search) {
         // Query to search in both video titles and tags.
         // This is a basic example and might need adjustments based on your schema and requirements
         query = `
-          SELECT DISTINCT v.id, v.title, STRING_AGG(t.tag_name, ', ') AS tags
+          SELECT DISTINCT v.id, v.title, v.thumbnail_data, STRING_AGG(t.tag_name, ', ') AS tags
           FROM videos v
           LEFT JOIN video_tags vt ON v.id = vt.video_id
           LEFT JOIN tags t ON vt.tag_id = t.id
           WHERE v.title LIKE @search OR t.tag_name LIKE @search
-          GROUP BY v.id, v.title;
+          GROUP BY v.id, v.title, v.thumbnail_data;
         `;
       } else {
         // Query to get all videos if no search term is provided
         query = `
-          SELECT v.id, v.title, STRING_AGG(t.tag_name, ', ') AS tags
+          SELECT v.id, v.title, v.thumbnail_data, STRING_AGG(t.tag_name, ', ') AS tags
           FROM videos v
           LEFT JOIN video_tags vt ON v.id = vt.video_id
           LEFT JOIN tags t ON vt.tag_id = t.id
-          GROUP BY v.id, v.title;
+          GROUP BY v.id, v.title, v.thumbnail_data;
         `;
       }
   
       const videos = await pool.request()
-        .input('search', sql.VarChar, `%${search}%`)
-        .query(query);
-  
-      return videos.recordset;
+            .input('search', sql.VarChar, `%${search}%`)
+            .query(query);
+
+        // Convert thumbnail data to Base64 string
+        const formattedVideos = videos.recordset.map(video => ({
+            ...video,
+            thumbnailData: video.thumbnail_data ? Buffer.from(video.thumbnail_data).toString('base64') : null
+        }));
+
+        return formattedVideos;
     } catch (err) {
-      console.error('Error fetching videos from database:', err);
-      throw err;
+        console.error('Error fetching videos from database:', err);
+        throw err;
     }
-  }
+}
   
   module.exports = { fetchVideoDataById, insertVideoIntoDatabase, fetchVideosFromDatabase };
 
