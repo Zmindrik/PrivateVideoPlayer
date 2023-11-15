@@ -2,19 +2,19 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import VideoUpload from './VideoUpload';
 import VideoList from './VideoList'; // Make sure you have this component
-import './App.css';
+import './App.css'; // Ensure your CSS file is linked
 
 function App() {
   return (
     <Router>
       <div className="App">
-        <nav>
-          <ul>
-            <li>
-              <Link to="/">Upload Video</Link>
+        <nav className="app-nav">
+          <ul className="nav-menu">
+            <li className="nav-item">
+              <Link className="nav-link" to="/">Upload Video</Link>
             </li>
-            <li>
-              <Link to="/list">Video List</Link>
+            <li className="nav-item">
+              <Link className="nav-link" to="/list">Video List</Link>
             </li>
           </ul>
         </nav>

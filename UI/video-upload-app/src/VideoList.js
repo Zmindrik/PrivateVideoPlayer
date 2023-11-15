@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import './VideoList.css';
 
 function VideoList() {
   const [videos, setVideos] = useState([]);
@@ -31,7 +32,7 @@ function VideoList() {
   const handleTitleClick = async (id) => {
     try {
       const response = await axios.get(`http://localhost:3000/video/${id}`, { responseType: 'blob' });
-      const videoBlob = new Blob([response.data], { type: 'video/mp4' }); // Adjust MIME type as needed
+      const videoBlob = new Blob([response.data], { type: 'video/mp4' });
       const videoUrl = URL.createObjectURL(videoBlob);
       setCurrentVideoUrl(videoUrl);
     } catch (error) {
@@ -40,27 +41,33 @@ function VideoList() {
   };
 
   return (
-    <div>
-      <form onSubmit={handleSearchSubmit}>
-        <input
-          type="text"
-          placeholder="Search videos"
-          value={searchTerm}
-          onChange={handleSearchChange}
-        />
-        <button type="submit">Search</button>
-      </form>
-      <div>
+    <div className="video-list-container">
+      <div className="search-bar">
+        <form onSubmit={handleSearchSubmit}>
+          <input
+            type="text"
+            placeholder="Search videos"
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
+          <button type="submit">Search</button>
+        </form>
+      </div>
+
+      <div className="video-grid">
         {videos.map(video => (
-          <div key={video.id}>
-            <img src={`data:image/png;base64,${video.thumbnailData}`} alt={video.title} />
-            <h3 onClick={() => handleTitleClick(video.id)} style={{ cursor: 'pointer' }}>{video.title}</h3>
-            <p>Tags: {video.tags}</p> {/* Adjust how tags are displayed based on your data structure */}
+          <div key={video.id} className="video-item">
+            {video.thumbnailData && (
+              <img src={`data:image/png;base64,${video.thumbnailData}`} alt={video.title} />
+            )}
+            <h3 onClick={() => handleTitleClick(video.id)}>{video.title}</h3>
+            <p>Tags: {video.tags}</p>
           </div>
         ))}
       </div>
+
       {currentVideoUrl && (
-        <div>
+        <div className="video-player">
           <video controls src={currentVideoUrl} onContextMenu={(e) => e.preventDefault()} />
         </div>
       )}
